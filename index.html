@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ShopWithMe Team Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<style>
+  :root{
+    --paper:#f6f5f1;--card:#fff;--line:#e3e1da;--ink:#1c1d1f;--muted:#77786f;
+    --red:#c2452f;--red-soft:#faeae6;--amber:#a8720a;--amber-soft:#fdf3dd;
+    --green:#2e7d4f;--green-soft:#e7f3ec;--blue:#2b5f8f;--purple:#6a4fb5;--wa:#1fa855;
+    --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  #app{max-width:720px;margin:0 auto;padding:0 14px 90px}
+  header.top{padding:20px 0 4px}
+  .date-line{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0;display:flex;justify-content:space-between}
+  .sync{font-weight:600;letter-spacing:0;text-transform:none}
+  .sync.err{color:var(--red)}
+  h1{font-size:25px;font-weight:800;margin:2px 0 6px;letter-spacing:-.01em}
+  .summary{font-size:13.5px;color:var(--muted);margin:0}
+  .summary b{font-weight:700}
+  .summary .od{color:var(--red)}
+  .summary .ds{color:var(--amber)}
+  .tabs{display:flex;gap:6px;margin:16px 0 14px;position:sticky;top:0;background:var(--paper);padding:8px 0;z-index:5}
+  .tab{flex:1;appearance:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
+    border-radius:8px;padding:9px 4px;cursor:pointer;font-family:var(--body);font-size:13.5px;font-weight:700}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tab .n{font-weight:400;opacity:.75}
+  .quickadd{display:flex;gap:8px;margin:0 0 6px}
+  .quickadd input{flex:1;border:1px solid var(--line);border-radius:8px;padding:11px 12px;font-size:15px;font-family:var(--body);background:var(--card);color:var(--ink)}
+  .quickadd button{appearance:none;border:none;background:var(--ink);color:#fff;border-radius:8px;padding:0 18px;font-size:20px;font-weight:700;cursor:pointer}
+  .hint{font-size:11.5px;color:#a09f96;margin:0 0 16px;padding-left:2px}
+  .group{margin:0 0 18px}
+  .group-head{display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:0 2px}
+  .group-title{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin:0}
+  .group-title .cnt{color:var(--muted);font-weight:600}
+  .wa-btn{appearance:none;border:none;margin-left:auto;background:var(--wa);color:#fff;border-radius:99px;
+    padding:6px 13px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+  .task{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .task.done-row{opacity:.6}
+  .task.blocked{border-color:var(--red)}
+  .chk{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #c8c6bd;background:none;cursor:pointer;appearance:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;margin-top:1px}
+  .chk.on{background:var(--green);border-color:var(--green)}
+  .t-body{flex:1;min-width:0}
+  .t-title{font-size:14.5px;font-weight:600;margin:0;line-height:1.35}
+  .t-meta{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 0;align-items:center}
+  .chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:var(--paper)}
+  .chip.prio-AAA{background:var(--red-soft);color:var(--red);border-color:transparent}
+  .chip.prio-AA{background:var(--amber-soft);color:var(--amber);border-color:transparent}
+  .chip.prio-A{background:#eef1f5;color:var(--blue);border-color:transparent}
+  .chip.due-over{background:var(--red);color:#fff;border-color:transparent}
+  .chip.due-today{background:var(--amber);color:#fff;border-color:transparent}
+  .chip.due-soon{background:var(--amber-soft);color:var(--amber);border-color:transparent}
+  .chip.st-blocked{background:var(--red-soft);color:var(--red);border-color:transparent}
+  .t-note{font-size:12.5px;color:var(--muted);margin:4px 0 0}
+  .t-last{font-size:12.5px;margin:6px 0 0;padding:6px 9px;background:var(--paper);border-radius:7px;color:var(--ink)}
+  .t-last .who{font-weight:700}
+  .t-last .ago{color:var(--muted)}
+  .empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
+  .allclear{font-size:34px;margin:0 0 6px}
+  .section-h{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 2px 8px;display:flex;align-items:center;gap:8px}
+  .update-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+  .u-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .u-who{font-weight:800;font-size:13.5px}
+  .u-ago{font-size:12px;color:var(--muted)}
+  .u-text{margin:4px 0 0;font-size:14px}
+  .u-task{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+  .silent-card{background:var(--card);border:1px solid var(--amber);border-radius:10px;padding:11px 12px;margin:0 0 8px;display:flex;gap:12px;align-items:center}
+  .avatar{flex:none;width:38px;height:38px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+  .s-body{flex:1;min-width:0}
+  .s-name{font-weight:800;margin:0;font-size:14.5px}
+  .s-sub{font-size:12.5px;color:var(--muted);margin:1px 0 0}
+  .overlay{position:fixed;inset:0;background:rgba(20,20,18,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+  .sheet{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:720px;padding:18px 16px 26px;max-height:88vh;overflow-y:auto}
+  .sheet h3{margin:0 0 4px;font-size:16.5px}
+  .sheet .sub{margin:0 0 14px;font-size:13px;color:var(--muted)}
+  .frow{margin:0 0 12px}
+  .frow label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .frow input,.frow select,.frow textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 11px;font-size:15px;font-family:var(--body);background:#fff;color:var(--ink)}
+  .frow textarea{resize:vertical;min-height:60px}
+  .frow .row2{display:flex;gap:10px}
+  .frow .row2>*{flex:1}
+  .statusbtns{display:flex;gap:8px;margin:0 0 12px}
+  .stb{flex:1;appearance:none;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px 6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--body);color:var(--muted)}
+  .stb.sel-open{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+  .stb.sel-blocked{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+  .stb.sel-done{border-color:var(--ink);color:var(--ink);background:var(--paper)}
+  .sheet-actions{display:flex;gap:10px;margin-top:14px}
+  .btn{appearance:none;border:none;border-radius:9px;padding:13px 16px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--body)}
+  .btn.primary{background:var(--ink);color:#fff;flex:1}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--muted)}
+  .btn.danger{background:none;border:1px solid var(--red);color:var(--red)}
+  .member{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 8px;display:flex;gap:12px;align-items:center}
+  .m-body{flex:1;min-width:0}
+  .m-name{font-weight:700;margin:0}
+  .m-sub{font-size:12.5px;color:var(--muted);margin:1px 0 0;word-break:break-all}
+  .m-phone{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:140px;font-family:var(--body)}
+  .toolbar{display:flex;gap:8px;margin:24px 0 0;justify-content:center;flex-wrap:wrap}
+  .tool{appearance:none;background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:8px 13px;font-size:12.5px;cursor:pointer;font-family:var(--body)}
+  footer.note{margin-top:18px;font-size:12px;color:#a09f96;text-align:center;line-height:1.6}
+  .banner{background:var(--amber-soft);border:1px solid var(--amber);color:var(--amber);border-radius:10px;padding:12px 14px;font-size:13.5px;margin:0 0 14px}
+  .setup{max-width:420px;margin:60px auto 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 20px}
+  .setup h2{margin:0 0 6px}
+  .setup p{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .linkbox{font-size:12px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;word-break:break-all;margin:6px 0 0}
+</style>
+
+<div id="app"></div>
+<div id="modal"></div>
+
+<script>
+"use strict";
+
+/* ================= IDENTITY & STORE CONFIG ================= */
+const CFG_KEY="team-board-cfg";
+let cfg=loadCfg();
+function loadCfg(){
+  let c={};
+  try{c=JSON.parse(localStorage.getItem(CFG_KEY))||{};}catch(e){}
+  const hp=new URLSearchParams(location.hash.slice(1));
+  if(hp.get("b"))c.bucket=hp.get("b");
+  if(hp.get("u"))c.user=hp.get("u");
+  if(hp.get("demo"))c.demo=true;
+  try{localStorage.setItem(CFG_KEY,JSON.stringify(c));}catch(e){}
+  return c;
+}
+function storeURL(){return "https://kvdb.io/"+cfg.bucket+"/board";}
+
+/* ================= REMOTE STORE ================= */
+const DEMO_KEY="team-board-demo";
+async function remoteGet(){
+  if(cfg.demo){
+    const s=localStorage.getItem(DEMO_KEY);
+    return s?JSON.parse(s):null;
+  }
+  const r=await fetch(storeURL(),{cache:"no-store"});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("GET "+r.status);
+  const txt=await r.text();
+  try{return JSON.parse(txt);}catch(e){return null;}
+}
+async function remotePut(data){
+  if(cfg.demo){localStorage.setItem(DEMO_KEY,JSON.stringify(data));return;}
+  const r=await fetch(storeURL(),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  if(!r.ok)throw new Error("PUT "+r.status);
+}
+
+/* ================= BOARD STATE ================= */
+let board=null;      // shared data
+let view=null;       // current tab
+let syncState="…";   // ui indicator
+const SECTIONS=["Tax & Cashflow","AI Launches","Media","Phair","Other"];
+
+function isBoss(){return !!(board&&board.team[cfg.user]&&board.team[cfg.user].boss);}
+function me(){return cfg.user;}
+function nowISO(){return new Date().toISOString();}
+
+function emptyBoard(){
+  return {v:1,updatedAt:nowISO(),team:{[cfg.user||"Christian"]:{boss:true,phone:""}},tasks:[]};
+}
+function demoBoard(){
+  const t=(title,owner,prio,due,section,status,updates)=>({id:crypto.randomUUID(),title,owner,prio,due,section,note:"",status:status||"open",updates:updates||[],created:"2026-07-01",mAt:nowISO(),doneAt:null});
+  const ago=h=>new Date(Date.now()-h*36e5).toISOString();
+  return {v:1,updatedAt:nowISO(),
+    team:{Christian:{boss:true,phone:""},Alex:{phone:""},Sam:{phone:""},Kim:{phone:""}},
+    tasks:[
+      t("Demo: launch landing page","Alex","AAA","2026-07-05","AI Launches","open",[{by:"Alex",at:ago(3),text:"Copy done, deploying tonight",st:"open"}]),
+      t("Demo: quarterly VAT filing","Sam","AAA","2026-07-06","Tax & Cashflow","blocked",[{by:"Sam",at:ago(26),text:"Waiting for bank statement",st:"blocked"}]),
+      t("Demo: print brochure","Kim","A","2026-07-10","Media","open",[]),
+      t("Demo: old task finished","Alex","A","2026-07-01","Media","done",[{by:"Alex",at:ago(20),text:"Shipped",st:"done"}]),
+    ]};
+}
+
+/* ================= SYNC ================= */
+function mergeBoards(a,b){ // returns merged of two board objects
+  if(!a)return b; if(!b)return a;
+  const out={v:1,updatedAt:a.updatedAt>b.updatedAt?a.updatedAt:b.updatedAt,team:{},tasks:[]};
+  const names=new Set([...Object.keys(a.team||{}),...Object.keys(b.team||{})]);
+  names.forEach(n=>{
+    const x=(a.team||{})[n],y=(b.team||{})[n];
+    out.team[n]=Object.assign({},x||{},y||{});
+    if((x&&x.phone)&&(!y||!y.phone))out.team[n].phone=x.phone;
+  });
+  const byId={};
+  [...(a.tasks||[]),...(b.tasks||[])].forEach(t=>{
+    const ex=byId[t.id];
+    if(!ex){byId[t.id]=JSON.parse(JSON.stringify(t));return;}
+    const newer=(t.mAt||"")>(ex.mAt||"")?t:ex;
+    const older=newer===t?ex:t;
+    const m=JSON.parse(JSON.stringify(newer));
+    const seen=new Set((m.updates||[]).map(u=>u.by+u.at));
+    (older.updates||[]).forEach(u=>{if(!seen.has(u.by+u.at))m.updates.push(u);});
+    m.updates.sort((x,y)=>x.at.localeCompare(y.at));
+    byId[t.id]=m;
+  });
+  out.tasks=Object.values(byId);
+  return out;
+}
+let pushing=false;
+async function push(){
+  if(!board)return;
+  board.updatedAt=nowISO();
+  render();
+  if(pushing)return;
+  pushing=true;
+  try{
+    const remote=await remoteGet();
+    board=mergeBoards(board,remote);
+    await remotePut(board);
+    syncState="saved "+new Date().toLocaleTimeString().slice(0,5);
+  }catch(e){syncState="offline — will retry";setTimeout(push,15000);}
+  pushing=false;
+  render();
+}
+async function pull(){
+  try{
+    const remote=await remoteGet();
+    if(remote){board=mergeBoards(board,remote);syncState="synced "+new Date().toLocaleTimeString().slice(0,5);}
+    else if(!board)board=null;
+  }catch(e){syncState="offline";}
+  render();
+}
+
+/* ================= HELPERS ================= */
+const app=document.getElementById("app"),modal=document.getElementById("modal");
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function h(html){const t=document.createElement("template");t.innerHTML=html.trim();return t.content;}
+function today(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+function parseISO(s){const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);}
+function daysUntil(t){if(!t.due)return null;if(t.due==="asap")return -0.5;return Math.round((parseISO(t.due)-today())/864e5);}
+function fmtDue(t){
+  if(!t.due)return "";
+  if(t.due==="asap")return "ASAP";
+  const d=parseISO(t.due),dd=String(d.getDate()).padStart(2,"0"),mm=String(d.getMonth()+1).padStart(2,"0");
+  const n=daysUntil(t);
+  if(n<0)return dd+"."+mm+" · "+(-n)+"d overdue";
+  if(n===0)return "today";
+  if(n===1)return "tomorrow";
+  return dd+"."+mm;
+}
+function dueClass(t){const n=daysUntil(t);if(n===null)return "";if(n<0)return "due-over";if(n===0)return "due-today";if(n<=7)return "due-soon";return "";}
+function ago(iso){
+  const s=(Date.now()-new Date(iso))/1e3;
+  if(s<90)return "just now";
+  if(s<3600)return Math.round(s/60)+"m ago";
+  if(s<86400)return Math.round(s/3600)+"h ago";
+  return Math.round(s/86400)+"d ago";
+}
+function ownerColor(name){let x=0;for(const c of name)x=(x*31+c.charCodeAt(0))%360;return "hsl("+x+",42%,46%)";}
+function firstName(o){return (o||"").split(/[\s&/]+/)[0];}
+function openTasks(){return board.tasks.filter(t=>t.status!=="done");}
+function myTasks(){return board.tasks.filter(t=>t.owner===me());}
+function leaders(){return Object.keys(board.team).filter(n=>!board.team[n].boss);}
+function lastUpdateBy(name){
+  let last=null;
+  board.tasks.forEach(t=>(t.updates||[]).forEach(u=>{if(u.by===name&&(!last||u.at>last))last=u.at;}));
+  return last;
+}
+function lastUpd(t){const u=t.updates||[];return u.length?u[u.length-1]:null;}
+const ST_LABEL={open:"On track",blocked:"Blocked",done:"Done"};
+
+/* ================= WHATSAPP (manual nudge) ================= */
+function waMessage(owner,tasks,nudge){
+  const lines=tasks.map(t=>{
+    let l="• "+t.title;
+    if(t.due==="asap")l+=" (ASAP)";
+    else if(t.due){const d=parseISO(t.due);l+=" (due "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+")";}
+    return l;
+  });
+  const link=location.origin+location.pathname+"#"+(cfg.bucket?"b="+cfg.bucket+"&":"")+"u="+encodeURIComponent(owner);
+  return "Hi "+firstName(owner)+", "+(nudge?"I haven't seen an update from you on the board. Quick status on:":"quick status check on:")+"\n\n"+lines.join("\n")+"\n\n👉 Post your update here (10 seconds): "+link+"\n\nThanks! 🙏 Christian";
+}
+function waLink(owner,tasks,nudge){
+  const phone=((board.team[owner]||{}).phone||"").replace(/[^\d]/g,"");
+  const text=encodeURIComponent(waMessage(owner,tasks,nudge));
+  return phone?("https://wa.me/"+phone+"?text="+text):("https://wa.me/?text="+text);
+}
+const WA_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .3-3.4-.7-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.3 1.4 2.6 1.6.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.2 1.3Z"/></svg>';
+
+/* ================= RENDER ================= */
+function render(){
+  app.innerHTML="";
+  if(!cfg.bucket&&!cfg.demo){renderSetup("Missing board link. Ask Christian for your personal link.");return;}
+  if(!cfg.user){renderSetup("Who are you? Open your personal link, or enter your name.");return;}
+  if(!board){
+    app.appendChild(h('<div class="setup"><h2>Team Board</h2><p>Connecting to the board…<br>If this is a brand-new board, it may not be initialized yet.</p>'+
+      (cfg.demo?'<button class="btn primary" id="initDemo">Load demo data</button>':'<p class="linkbox">Storage: '+esc(cfg.bucket||"")+'</p><button class="btn primary" id="retry">Retry</button>')+
+      '</div>'));
+    const d=app.querySelector("#initDemo");
+    if(d)d.addEventListener("click",()=>{board=demoBoard();push();});
+    const r=app.querySelector("#retry");
+    if(r)r.addEventListener("click",pull);
+    return;
+  }
+  const boss=isBoss();
+  if(!view)view=boss?"morning":"mine";
+
+  const open=openTasks();
+  const od=open.filter(t=>{const n=daysUntil(t);return n!==null&&n<0;}).length;
+  const wk=open.filter(t=>{const n=daysUntil(t);return n!==null&&n>=0&&n<=7;}).length;
+  const dateStr=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+
+  app.appendChild(h(
+    '<header class="top"><p class="date-line"><span>'+esc(dateStr)+' · '+esc(me())+'</span><span class="sync'+(syncState.startsWith("offline")?" err":"")+'">'+esc(syncState)+'</span></p>'+
+    '<h1>'+(boss?"Team Board":"My Board")+'</h1>'+
+    '<p class="summary"><b class="od">'+od+' overdue</b> · <b class="ds">'+wk+' due this week</b> · '+open.length+' open</p></header>'
+  ));
+
+  const tabs=boss
+    ?[["morning","Morning"],["board","Board"],["done","Done"],["team","Team"]]
+    :[["mine","My Tasks"],["board","All"],["done","Done"]];
+  app.appendChild(h('<div class="tabs">'+tabs.map(([id,l])=>'<button class="tab'+(view===id?" active":"")+'" data-v="'+id+'">'+l+'</button>').join("")+'</div>'));
+  app.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{view=b.dataset.v;render();}));
+
+  if(view==="morning")renderMorning();
+  else if(view==="mine")renderMine();
+  else if(view==="board")renderBoard();
+  else if(view==="done")renderDone();
+  else renderTeam();
+
+  app.appendChild(h('<footer class="note">'+(boss
+    ?"Your leaders post updates on their own boards. Silent ones get a daily automatic WhatsApp reminder."
+    :"Tap a task, choose On track / Blocked / Done, add one line. That's your daily report — 10 seconds.")+'</footer>'));
+}
+
+function renderSetup(msg){
+  app.innerHTML="";
+  app.appendChild(h('<div class="setup"><h2>Team Board</h2><p>'+esc(msg)+'</p>'+
+    '<div class="frow"><label>Board code</label><input id="s-bucket" value="'+esc(cfg.bucket||"")+'" placeholder="board code"></div>'+
+    '<div class="frow"><label>Your name</label><input id="s-user" value="'+esc(cfg.user||"")+'" placeholder="e.g. Verdy"></div>'+
+    '<button class="btn primary" id="s-go" style="width:100%">Open board</button></div>'));
+  app.querySelector("#s-go").addEventListener("click",()=>{
+    cfg.bucket=app.querySelector("#s-bucket").value.trim();
+    cfg.user=app.querySelector("#s-user").value.trim();
+    localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+    pull();
+  });
+}
+
+function taskRow(t,showOwner){
+  const chips=[];
+  if(t.prio)chips.push('<span class="chip prio-'+t.prio+'">'+t.prio+'</span>');
+  if(t.due)chips.push('<span class="chip '+dueClass(t)+'">'+esc(fmtDue(t))+'</span>');
+  if(showOwner&&t.owner)chips.push('<span class="chip" style="color:'+ownerColor(t.owner)+'">'+esc(t.owner)+'</span>');
+  if(t.status==="blocked")chips.push('<span class="chip st-blocked">⛔ blocked</span>');
+  chips.push('<span class="chip">'+esc(t.section)+'</span>');
+  const lu=lastUpd(t);
+  return '<div class="task'+(t.status==="done"?" done-row":"")+(t.status==="blocked"?" blocked":"")+'" data-id="'+t.id+'">'+
+    '<button class="chk'+(t.status==="done"?" on":"")+'" data-chk="'+t.id+'">'+(t.status==="done"?"✓":"")+'</button>'+
+    '<div class="t-body"><p class="t-title">'+esc(t.title)+'</p>'+
+    '<div class="t-meta">'+chips.join("")+'</div>'+
+    (t.note?'<p class="t-note">'+esc(t.note)+'</p>':"")+
+    (lu?'<p class="t-last"><span class="who">'+esc(lu.by)+'</span> <span class="ago">· '+ago(lu.at)+'</span> — '+esc(lu.text||ST_LABEL[lu.st]||"update")+'</p>':"")+
+    '</div></div>';
+}
+function bindRows(){
+  app.querySelectorAll(".chk").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();quickDone(b.dataset.chk);}));
+  app.querySelectorAll(".task").forEach(el=>el.addEventListener("click",()=>openUpdateSheet(el.dataset.id)));
+}
+
+/* ---------- boss: morning ---------- */
+function renderMorning(){
+  const frag=document.createDocumentFragment();
+  const cut=Date.now()-48*36e5;
+  const updates=[];
+  board.tasks.forEach(t=>(t.updates||[]).forEach(u=>{if(new Date(u.at)>cut&&u.by!==me())updates.push({u,t});}));
+  updates.sort((a,b)=>b.u.at.localeCompare(a.u.at));
+
+  frag.appendChild(h('<p class="section-h">🆕 Updates — last 48h · '+updates.length+'</p>'));
+  if(!updates.length)frag.appendChild(h('<div class="empty">No updates from the team yet.</div>'));
+  updates.slice(0,30).forEach(({u,t})=>{
+    frag.appendChild(h('<div class="update-card"><div class="u-head">'+
+      '<span class="u-who" style="color:'+ownerColor(u.by)+'">'+esc(u.by)+'</span>'+
+      '<span class="chip '+(u.st==="blocked"?"st-blocked":u.st==="done"?"":"prio-A")+'">'+esc(ST_LABEL[u.st]||"update")+'</span>'+
+      '<span class="u-ago">'+ago(u.at)+'</span></div>'+
+      (u.text?'<p class="u-text">'+esc(u.text)+'</p>':"")+
+      '<p class="u-task">↳ '+esc(t.title)+'</p></div>'));
+  });
+
+  const cut24=Date.now()-24*36e5;
+  const silent=leaders().filter(n=>{
+    const has=openTasks().some(t=>t.owner===n);
+    if(!has)return false;
+    const lu=lastUpdateBy(n);
+    return !lu||new Date(lu)<cut24;
+  });
+  frag.appendChild(h('<p class="section-h">🔕 Silent — no update in 24h · '+silent.length+'</p>'));
+  if(!silent.length)frag.appendChild(h('<div class="empty"><p class="allclear">👏</p>Everyone with open tasks has reported. Enjoy your coffee.</div>'));
+  silent.forEach(n=>{
+    const ts=openTasks().filter(t=>t.owner===n).sort((a,b)=>{const x=daysUntil(a),y=daysUntil(b);return (x===null?99:x)-(y===null?99:y);});
+    const lu=lastUpdateBy(n);
+    frag.appendChild(h('<div class="silent-card"><div class="avatar" style="background:'+ownerColor(n)+'">'+esc(n[0].toUpperCase())+'</div>'+
+      '<div class="s-body"><p class="s-name">'+esc(n)+'</p><p class="s-sub">'+ts.length+' open · last update '+(lu?ago(lu):"never")+'</p></div>'+
+      '<a class="wa-btn" target="_blank" rel="noopener" href="'+waLink(n,ts,true)+'">'+WA_SVG+' Nudge</a></div>'));
+  });
+
+  const blocked=openTasks().filter(t=>t.status==="blocked");
+  if(blocked.length){
+    frag.appendChild(h('<p class="section-h">⛔ Blocked — needs you · '+blocked.length+'</p>'));
+    blocked.forEach(t=>frag.appendChild(h(taskRow(t,true))));
+  }
+
+  const chase=openTasks().filter(t=>{const n=daysUntil(t);return n!==null&&n<=1;});
+  if(chase.length){
+    frag.appendChild(h('<p class="section-h">🔥 Overdue & today · '+chase.length+'</p>'));
+    chase.sort((a,b)=>{const x=daysUntil(a),y=daysUntil(b);return (x===null?99:x)-(y===null?99:y);})
+      .forEach(t=>frag.appendChild(h(taskRow(t,true))));
+  }
+  app.appendChild(frag);
+  bindRows();
+}
+
+/* ---------- leader: my tasks ---------- */
+function renderMine(){
+  const ts=myTasks().filter(t=>t.status!=="done");
+  const lu=lastUpdateBy(me());
+  const fresh=lu&&(Date.now()-new Date(lu))<24*36e5;
+  const frag=document.createDocumentFragment();
+  if(!fresh&&ts.length)frag.appendChild(h('<div class="banner">☝️ You haven\'t posted an update in the last 24h. Tap a task, set the status, one line — done.</div>'));
+  if(!ts.length){frag.appendChild(h('<div class="empty"><p class="allclear">🎉</p>No open tasks.</div>'));}
+  ts.sort((a,b)=>{const p={AAA:0,AA:1,A:2,B:3};const d=(p[a.prio]||2)-(p[b.prio]||2);
+    const x=daysUntil(a),y=daysUntil(b);const dd=(x===null?99:x)-(y===null?99:y);return dd||d;});
+  ts.forEach(t=>frag.appendChild(h(taskRow(t,false))));
+  app.appendChild(frag);
+  bindRows();
+}
+
+/* ---------- board (all) ---------- */
+function renderBoard(){
+  if(isBoss()){
+    app.appendChild(h('<div class="quickadd"><input id="qa" placeholder="Add task…  e.g. Fix orderpage @Verdy !aaa 18.07"><button id="qaBtn">+</button></div>'+
+      '<p class="hint">@name = owner · !aaa/!aa/!a/!b = priority · 18.07 or asap = due · #tax #ai #media = section</p>'));
+    const qa=app.querySelector("#qa");
+    const addIt=()=>{if(qa.value.trim()){quickAdd(qa.value.trim());qa.value="";}};
+    app.querySelector("#qaBtn").addEventListener("click",addIt);
+    qa.addEventListener("keydown",e=>{if(e.key==="Enter")addIt();});
+  }
+  const open=openTasks();
+  const secs=[...SECTIONS];
+  open.forEach(t=>{if(!secs.includes(t.section))secs.push(t.section);});
+  const frag=document.createDocumentFragment();
+  secs.forEach(s=>{
+    const ts=open.filter(t=>t.section===s);
+    if(!ts.length)return;
+    ts.sort((a,b)=>{const p={AAA:0,AA:1,A:2,B:3};const d=(p[a.prio]||2)-(p[b.prio]||2);if(d)return d;
+      const x=daysUntil(a),y=daysUntil(b);return (x===null?99:x)-(y===null?99:y);});
+    frag.appendChild(h('<p class="section-h">'+esc(s)+' · '+ts.length+'</p>'));
+    ts.forEach(t=>frag.appendChild(h(taskRow(t,true))));
+  });
+  app.appendChild(frag);
+  bindRows();
+}
+
+function renderDone(){
+  const done=board.tasks.filter(t=>t.status==="done").sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+  if(!done.length){app.appendChild(h('<div class="empty">Nothing finished yet.</div>'));return;}
+  const frag=document.createDocumentFragment();
+  frag.appendChild(h('<p class="section-h">Completed · '+done.length+'</p>'));
+  done.forEach(t=>frag.appendChild(h(taskRow(t,true))));
+  app.appendChild(frag);
+  bindRows();
+}
+
+function renderTeam(){
+  const frag=document.createDocumentFragment();
+  frag.appendChild(h('<p class="section-h">Team — share each person\'s personal link</p>'));
+  Object.keys(board.team).sort().forEach(o=>{
+    const cnt=openTasks().filter(t=>t.owner===o).length;
+    const phone=board.team[o].phone||"";
+    const link=location.origin+location.pathname+"#"+(cfg.bucket?"b="+cfg.bucket+"&":"")+"u="+encodeURIComponent(o);
+    frag.appendChild(h('<div class="member"><div class="avatar" style="background:'+ownerColor(o)+'">'+esc(o[0].toUpperCase())+'</div>'+
+      '<div class="m-body"><p class="m-name">'+esc(o)+(board.team[o].boss?" 👑":"")+'</p>'+
+      '<p class="m-sub">'+cnt+' open · <a href="'+esc(link)+'">personal link</a> <button class="tool" data-copy="'+esc(link)+'" style="padding:2px 8px;font-size:11px">copy</button></p></div>'+
+      '<input class="m-phone" type="tel" placeholder="+49171…" value="'+esc(phone)+'" data-owner="'+esc(o)+'"></div>'));
+  });
+  frag.appendChild(h('<div class="quickadd" style="margin-top:14px"><input id="newMember" placeholder="Add team member name…"><button id="addMember">+</button></div>'));
+  app.appendChild(frag);
+  app.querySelectorAll(".m-phone").forEach(inp=>inp.addEventListener("change",()=>{
+    board.team[inp.dataset.owner].phone=inp.value.trim();
+    push();
+  }));
+  app.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>{
+    navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent="copied!";setTimeout(()=>b.textContent="copy",1500);});
+  }));
+  app.querySelector("#addMember").addEventListener("click",()=>{
+    const n=app.querySelector("#newMember").value.trim();
+    if(n&&!board.team[n]){board.team[n]={phone:""};push();}
+  });
+}
+
+/* ================= ACTIONS ================= */
+function quickDone(id){
+  const t=board.tasks.find(x=>x.id===id);
+  if(!t)return;
+  if(t.status==="done"){t.status="open";t.doneAt=null;}
+  else{
+    t.status="done";t.doneAt=new Date().toISOString().slice(0,10);
+    (t.updates=t.updates||[]).push({by:me(),at:nowISO(),text:"",st:"done"});
+  }
+  t.mAt=nowISO();
+  push();
+}
+
+function quickAdd(text){
+  const t={id:crypto.randomUUID(),title:"",owner:"",prio:"A",due:null,section:"Other",note:"",status:"open",updates:[],created:new Date().toISOString().slice(0,10),mAt:nowISO(),doneAt:null};
+  const secMap={tax:"Tax & Cashflow",cash:"Tax & Cashflow",ai:"AI Launches",media:"Media",phair:"Phair"};
+  const rest=[];
+  text.split(/\s+/).forEach(w=>{
+    if(w.startsWith("@")&&w.length>1){t.owner=w.slice(1).replace(/^./,c=>c.toUpperCase());return;}
+    if(/^!(aaa|aa|a|b)$/i.test(w)){t.prio=w.slice(1).toUpperCase();return;}
+    if(w.startsWith("#")&&w.length>1){t.section=secMap[w.slice(1).toLowerCase()]||w.slice(1);return;}
+    if(/^asap$/i.test(w)){t.due="asap";return;}
+    const m=w.match(/^(\d{1,2})\.(\d{1,2})\.?$/);
+    if(m){const now=today();let d=new Date(now.getFullYear(),+m[2]-1,+m[1]);
+      if((d-now)/864e5<-60)d=new Date(now.getFullYear()+1,+m[2]-1,+m[1]);
+      t.due=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return;}
+    rest.push(w);
+  });
+  t.title=rest.join(" ")||"Untitled";
+  if(t.owner&&!board.team[t.owner])board.team[t.owner]={phone:""};
+  board.tasks.unshift(t);
+  push();
+}
+
+/* ================= UPDATE SHEET ================= */
+function openUpdateSheet(id){
+  const t=board.tasks.find(x=>x.id===id);
+  if(!t)return;
+  const boss=isBoss();
+  let selSt=t.status==="done"?"done":t.status;
+  modal.innerHTML="";
+  const secs=[...SECTIONS];if(!secs.includes(t.section))secs.push(t.section);
+  const dueVal=t.due&&t.due!=="asap"?t.due:"";
+  modal.appendChild(h(
+    '<div class="overlay" id="ovl"><div class="sheet">'+
+    '<h3>'+esc(t.title)+'</h3>'+
+    '<p class="sub">'+esc(t.owner||"unassigned")+(t.due?' · due '+esc(fmtDue(t)):"")+'</p>'+
+    '<div class="statusbtns">'+
+      '<button class="stb" data-st="open">✅ On track</button>'+
+      '<button class="stb" data-st="blocked">⛔ Blocked</button>'+
+      '<button class="stb" data-st="done">🏁 Done</button>'+
+    '</div>'+
+    '<div class="frow"><label>Update (one line is enough)</label><textarea id="u-text" placeholder="What happened? What\'s next? What do you need?"></textarea></div>'+
+    (boss?(
+      '<div class="frow"><div class="row2">'+
+        '<div><label>Owner</label><input id="e-owner" list="ownerlist" value="'+esc(t.owner)+'">'+
+        '<datalist id="ownerlist">'+Object.keys(board.team).map(o=>'<option value="'+esc(o)+'">').join("")+'</datalist></div>'+
+        '<div><label>Priority</label><select id="e-prio">'+["AAA","AA","A","B"].map(p=>'<option'+(t.prio===p?" selected":"")+'>'+p+'</option>').join("")+'</select></div>'+
+      '</div></div>'+
+      '<div class="frow"><div class="row2">'+
+        '<div><label>Due date</label><input id="e-due" type="date" value="'+dueVal+'"></div>'+
+        '<div><label>Section</label><select id="e-sec">'+secs.map(s=>'<option'+(t.section===s?" selected":"")+'>'+esc(s)+'</option>').join("")+'</select></div>'+
+      '</div></div>'
+    ):"")+
+    ((t.updates||[]).length?'<p class="section-h" style="margin-top:6px">History</p>'+t.updates.slice(-4).reverse().map(u=>
+      '<p class="t-last" style="margin:0 0 6px"><span class="who">'+esc(u.by)+'</span> <span class="ago">· '+ago(u.at)+' · '+esc(ST_LABEL[u.st]||"")+'</span>'+(u.text?' — '+esc(u.text):"")+'</p>').join(""):"")+
+    '<div class="sheet-actions">'+
+      (boss?'<button class="btn danger" id="e-del">Delete</button>':"")+
+      '<button class="btn ghost" id="e-cancel">Cancel</button>'+
+      '<button class="btn primary" id="e-save">Post update</button>'+
+    '</div>'+
+    '</div></div>'
+  ));
+  const q=s=>modal.querySelector(s);
+  function paint(){modal.querySelectorAll(".stb").forEach(b=>{b.className="stb"+(b.dataset.st===selSt?" sel-"+selSt:"");});}
+  paint();
+  modal.querySelectorAll(".stb").forEach(b=>b.addEventListener("click",()=>{selSt=b.dataset.st;paint();}));
+  function close(){modal.innerHTML="";}
+  q("#ovl").addEventListener("click",e=>{if(e.target.id==="ovl")close();});
+  q("#e-cancel").addEventListener("click",close);
+  const del=q("#e-del");
+  if(del)del.addEventListener("click",()=>{
+    if(confirm("Delete this task?")){board.tasks=board.tasks.filter(x=>x.id!==id);push();close();}
+  });
+  q("#e-save").addEventListener("click",()=>{
+    const txt=q("#u-text").value.trim();
+    if(txt||selSt!==t.status){
+      (t.updates=t.updates||[]).push({by:me(),at:nowISO(),text:txt,st:selSt});
+    }
+    t.status=selSt;
+    if(selSt==="done"&&!t.doneAt)t.doneAt=new Date().toISOString().slice(0,10);
+    if(selSt!=="done")t.doneAt=null;
+    if(isBoss()){
+      t.owner=q("#e-owner").value.trim();
+      t.prio=q("#e-prio").value;
+      const dv=q("#e-due").value;
+      if(!(t.due==="asap"&&!dv))t.due=dv||null;
+      t.section=q("#e-sec").value;
+      if(t.owner&&!board.team[t.owner])board.team[t.owner]={phone:""};
+    }
+    t.mAt=nowISO();
+    push();close();
+  });
+}
+
+/* ================= BOOT ================= */
+pull();
+setInterval(pull,60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull();});
+window.addEventListener("hashchange",()=>{cfg=loadCfg();view=null;pull();});
+</script>
+</html>
