@@ -24,10 +24,12 @@
   .summary b{font-weight:700}
   .summary .od{color:var(--red)}
   .summary .ds{color:var(--amber)}
+  .summary .wk{color:var(--red)}
   .tabs{display:flex;gap:6px;margin:16px 0 14px;position:sticky;top:0;background:var(--paper);padding:8px 0;z-index:5}
   .tab{flex:1;appearance:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
     border-radius:8px;padding:9px 4px;cursor:pointer;font-family:var(--body);font-size:13.5px;font-weight:700}
   .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tab.week-tab.active{background:var(--red);border-color:var(--red)}
   .tab .n{font-weight:400;opacity:.75}
   .quickadd{display:flex;gap:8px;margin:0 0 6px}
   .quickadd input{flex:1;border:1px solid var(--line);border-radius:8px;padding:11px 12px;font-size:15px;font-family:var(--body);background:var(--card);color:var(--ink)}
@@ -42,8 +44,11 @@
   .task{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
   .task.done-row{opacity:.6}
   .task.blocked{border-color:var(--red)}
+  .task.week{border-left:3px solid var(--red)}
   .chk{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #c8c6bd;background:none;cursor:pointer;appearance:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;margin-top:1px}
   .chk.on{background:var(--green);border-color:var(--green)}
+  .pin{flex:none;border:none;background:none;cursor:pointer;font-size:15px;line-height:1;padding:2px 3px;margin-top:1px;opacity:.28;filter:grayscale(1);transition:opacity .1s}
+  .pin.on{opacity:1;filter:none}
   .t-body{flex:1;min-width:0}
   .t-title{font-size:14.5px;font-weight:600;margin:0;line-height:1.35}
   .t-meta{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 0;align-items:center}
@@ -55,6 +60,7 @@
   .chip.due-today{background:var(--amber);color:#fff;border-color:transparent}
   .chip.due-soon{background:var(--amber-soft);color:var(--amber);border-color:transparent}
   .chip.st-blocked{background:var(--red-soft);color:var(--red);border-color:transparent}
+  .chip.week{background:var(--red);color:#fff;border-color:transparent}
   .t-note{font-size:12.5px;color:var(--muted);margin:4px 0 0}
   .t-last{font-size:12.5px;margin:6px 0 0;padding:6px 9px;background:var(--paper);border-radius:7px;color:var(--ink)}
   .t-last .who{font-weight:700}
@@ -62,6 +68,8 @@
   .empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
   .allclear{font-size:34px;margin:0 0 6px}
   .section-h{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 2px 8px;display:flex;align-items:center;gap:8px}
+  .week-banner{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;padding:12px 14px;font-size:13.5px;margin:0 0 16px}
+  .week-banner b{font-weight:800}
   .update-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px}
   .u-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
   .u-who{font-weight:800;font-size:13.5px}
@@ -83,6 +91,10 @@
   .frow textarea{resize:vertical;min-height:60px}
   .frow .row2{display:flex;gap:10px}
   .frow .row2>*{flex:1}
+  .weektoggle{display:flex;align-items:center;gap:10px;border:1.5px solid var(--red);background:var(--red-soft);border-radius:9px;padding:11px 12px;margin:0 0 12px;cursor:pointer}
+  .weektoggle .box{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+  .weektoggle.on .box{background:var(--red)}
+  .weektoggle span{font-size:13.5px;font-weight:700;color:var(--red)}
   .statusbtns{display:flex;gap:8px;margin:0 0 12px}
   .stb{flex:1;appearance:none;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px 6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--body);color:var(--muted)}
   .stb.sel-open{border-color:var(--green);color:var(--green);background:var(--green-soft)}
@@ -199,12 +211,12 @@ function mergeBoards(a,b){ // returns merged of two board objects
   out.tasks=Object.values(byId);
   return out;
 }
-let pushing=false;
+let pushing=false,pushAgain=false;
 async function push(){
   if(!board)return;
   board.updatedAt=nowISO();
   render();
-  if(pushing)return;
+  if(pushing){pushAgain=true;return;}   // a save is already running — flush again when it finishes
   pushing=true;
   try{
     const remote=await remoteGet();
@@ -213,6 +225,7 @@ async function push(){
     syncState="saved "+new Date().toLocaleTimeString().slice(0,5);
   }catch(e){syncState="offline — will retry";setTimeout(push,15000);}
   pushing=false;
+  if(pushAgain){pushAgain=false;return push();}   // persist any changes made mid-save (e.g. quick taps)
   render();
 }
 async function pull(){
@@ -242,6 +255,7 @@ function fmtDue(t){
   return dd+"."+mm;
 }
 function dueClass(t){const n=daysUntil(t);if(n===null)return "";if(n<0)return "due-over";if(n===0)return "due-today";if(n<=7)return "due-soon";return "";}
+function prioDueSort(a,b){const p={AAA:0,AA:1,A:2,B:3};const d=(p[a.prio]||2)-(p[b.prio]||2);if(d)return d;const x=daysUntil(a),y=daysUntil(b);return (x===null?99:x)-(y===null?99:y);}
 function ago(iso){
   const s=(Date.now()-new Date(iso))/1e3;
   if(s<90)return "just now";
@@ -253,6 +267,7 @@ function ownerColor(name){let x=0;for(const c of name)x=(x*31+c.charCodeAt(0))%3
 function firstName(o){return (o||"").split(/[\s&/]+/)[0];}
 function openTasks(){return board.tasks.filter(t=>t.status!=="done");}
 function myTasks(){return board.tasks.filter(t=>t.owner===me());}
+function weekTasks(){return openTasks().filter(t=>t.week);}
 function leaders(){return Object.keys(board.team).filter(n=>!board.team[n].boss);}
 function lastUpdateBy(name){
   let last=null;
@@ -273,9 +288,24 @@ function waMessage(owner,tasks,nudge){
   const link=location.origin+location.pathname+"#"+(cfg.bucket?"b="+cfg.bucket+"&":"")+"u="+encodeURIComponent(owner);
   return "Hi "+firstName(owner)+", "+(nudge?"I haven't seen an update from you on the board. Quick status on:":"quick status check on:")+"\n\n"+lines.join("\n")+"\n\n👉 Post your update here (10 seconds): "+link+"\n\nThanks! 🙏 Christian";
 }
+function waWeekMessage(owner,tasks){
+  const lines=tasks.map(t=>{
+    let l="• "+t.title;
+    if(t.due==="asap")l+=" (ASAP)";
+    else if(t.due){const d=parseISO(t.due);l+=" (due "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+")";}
+    return l;
+  });
+  const link=location.origin+location.pathname+"#"+(cfg.bucket?"b="+cfg.bucket+"&":"")+"u="+encodeURIComponent(owner);
+  return "🎯 Hi "+firstName(owner)+", these are your HIGH-URGENCY tasks in this week's plan — please finish this week:\n\n"+lines.join("\n")+"\n\n👉 Update here: "+link+"\n\nThanks! 🙏 Christian";
+}
 function waLink(owner,tasks,nudge){
   const phone=((board.team[owner]||{}).phone||"").replace(/[^\d]/g,"");
   const text=encodeURIComponent(waMessage(owner,tasks,nudge));
+  return phone?("https://wa.me/"+phone+"?text="+text):("https://wa.me/?text="+text);
+}
+function waWeekLink(owner,tasks){
+  const phone=((board.team[owner]||{}).phone||"").replace(/[^\d]/g,"");
+  const text=encodeURIComponent(waWeekMessage(owner,tasks));
   return phone?("https://wa.me/"+phone+"?text="+text):("https://wa.me/?text="+text);
 }
 const WA_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .3-3.4-.7-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.3 1.4 2.6 1.6.3.1.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.2 1.3Z"/></svg>';
@@ -301,22 +331,24 @@ function render(){
   const open=openTasks();
   const od=open.filter(t=>{const n=daysUntil(t);return n!==null&&n<0;}).length;
   const wk=open.filter(t=>{const n=daysUntil(t);return n!==null&&n>=0&&n<=7;}).length;
+  const wkPlan=open.filter(t=>t.week).length;
   const dateStr=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
 
   app.appendChild(h(
     '<header class="top"><p class="date-line"><span>'+esc(dateStr)+' · '+esc(me())+'</span><span class="sync'+(syncState.startsWith("offline")?" err":"")+'">'+esc(syncState)+'</span></p>'+
     '<h1>'+(boss?"Team Board":"My Board")+'</h1>'+
-    '<p class="summary"><b class="od">'+od+' overdue</b> · <b class="ds">'+wk+' due this week</b> · '+open.length+' open</p></header>'
+    '<p class="summary"><b class="od">'+od+' overdue</b> · <b class="ds">'+wk+' due this week</b> · <b class="wk">🎯 '+wkPlan+' in plan</b> · '+open.length+' open</p></header>'
   ));
 
   const tabs=boss
-    ?[["morning","Morning"],["board","Board"],["done","Done"],["team","Team"]]
-    :[["mine","My Tasks"],["board","All"],["done","Done"]];
-  app.appendChild(h('<div class="tabs">'+tabs.map(([id,l])=>'<button class="tab'+(view===id?" active":"")+'" data-v="'+id+'">'+l+'</button>').join("")+'</div>'));
+    ?[["morning","Morning"],["week","🎯 Week"],["board","Board"],["done","Done"],["team","Team"]]
+    :[["mine","My Tasks"],["week","🎯 Week"],["board","All"],["done","Done"]];
+  app.appendChild(h('<div class="tabs">'+tabs.map(([id,l])=>'<button class="tab'+(id==="week"?" week-tab":"")+(view===id?" active":"")+'" data-v="'+id+'">'+l+'</button>').join("")+'</div>'));
   app.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{view=b.dataset.v;render();}));
 
   if(view==="morning")renderMorning();
   else if(view==="mine")renderMine();
+  else if(view==="week")renderWeek();
   else if(view==="board")renderBoard();
   else if(view==="done")renderDone();
   else renderTeam();
@@ -342,22 +374,26 @@ function renderSetup(msg){
 
 function taskRow(t,showOwner){
   const chips=[];
+  if(t.week)chips.push('<span class="chip week">🎯 week</span>');
   if(t.prio)chips.push('<span class="chip prio-'+t.prio+'">'+t.prio+'</span>');
   if(t.due)chips.push('<span class="chip '+dueClass(t)+'">'+esc(fmtDue(t))+'</span>');
   if(showOwner&&t.owner)chips.push('<span class="chip" style="color:'+ownerColor(t.owner)+'">'+esc(t.owner)+'</span>');
   if(t.status==="blocked")chips.push('<span class="chip st-blocked">⛔ blocked</span>');
   chips.push('<span class="chip">'+esc(t.section)+'</span>');
   const lu=lastUpd(t);
-  return '<div class="task'+(t.status==="done"?" done-row":"")+(t.status==="blocked"?" blocked":"")+'" data-id="'+t.id+'">'+
+  return '<div class="task'+(t.status==="done"?" done-row":"")+(t.status==="blocked"?" blocked":"")+(t.week?" week":"")+'" data-id="'+t.id+'">'+
     '<button class="chk'+(t.status==="done"?" on":"")+'" data-chk="'+t.id+'">'+(t.status==="done"?"✓":"")+'</button>'+
     '<div class="t-body"><p class="t-title">'+esc(t.title)+'</p>'+
     '<div class="t-meta">'+chips.join("")+'</div>'+
     (t.note?'<p class="t-note">'+esc(t.note)+'</p>':"")+
     (lu?'<p class="t-last"><span class="who">'+esc(lu.by)+'</span> <span class="ago">· '+ago(lu.at)+'</span> — '+esc(lu.text||ST_LABEL[lu.st]||"update")+'</p>':"")+
-    '</div></div>';
+    '</div>'+
+    '<button class="pin'+(t.week?" on":"")+'" data-week="'+t.id+'" title="'+(t.week?"Remove from weekly plan":"Add to weekly plan")+'">🎯</button>'+
+    '</div>';
 }
 function bindRows(){
   app.querySelectorAll(".chk").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();quickDone(b.dataset.chk);}));
+  app.querySelectorAll(".pin").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();toggleWeek(b.dataset.week);}));
   app.querySelectorAll(".task").forEach(el=>el.addEventListener("click",()=>openUpdateSheet(el.dataset.id)));
 }
 
@@ -413,6 +449,45 @@ function renderMorning(){
   bindRows();
 }
 
+/* ---------- weekly plan ---------- */
+function renderWeek(){
+  const wk=weekTasks();
+  const frag=document.createDocumentFragment();
+  frag.appendChild(h('<div class="week-banner">🎯 <b>Weekly Focus Plan — HIGH URGENCY.</b> The tasks to finish or follow up this week. Every owner here gets an automatic WhatsApp reminder each morning until the task is done. '+
+    'Add a task from any list by tapping its 🎯 pin, or add one straight into the plan below.</div>'));
+  if(isBoss()){
+    frag.appendChild(h('<div class="quickadd"><input id="qaw" placeholder="Add to this week…  e.g. Call bank @Andrea !aaa 18.07"><button id="qawBtn">+</button></div>'+
+      '<p class="hint">@name = owner · !aaa/!aa/!a/!b = priority · 18.07 or asap = due · #tax #ai #media = section · new tasks are pinned to the week automatically</p>'));
+  }
+  if(!wk.length){
+    frag.appendChild(h('<div class="empty"><p class="allclear">🎯</p>No tasks in this week\'s plan yet.<br>Open the <b>Board</b> and tap the 🎯 on any task to add it here.</div>'));
+    app.appendChild(frag);
+    bindRows();bindWeekAdd();
+    return;
+  }
+  const byOwner={};
+  wk.forEach(t=>{const o=t.owner||"Unassigned";(byOwner[o]=byOwner[o]||[]).push(t);});
+  const order=Object.keys(byOwner).sort((a,b)=>byOwner[b].length-byOwner[a].length);
+  order.forEach(o=>{
+    const ts=byOwner[o].sort(prioDueSort);
+    frag.appendChild(h('<div class="group-head">'+
+      '<div class="avatar" style="width:26px;height:26px;font-size:12px;background:'+ownerColor(o)+'">'+esc((o[0]||"?").toUpperCase())+'</div>'+
+      '<p class="group-title">'+esc(o)+' <span class="cnt">· '+ts.length+' in plan</span></p>'+
+      (isBoss()&&o!==me()&&o!=="Unassigned"?'<a class="wa-btn" target="_blank" rel="noopener" href="'+waWeekLink(o,ts)+'">'+WA_SVG+' Remind</a>':"")+
+      '</div>'));
+    ts.forEach(t=>frag.appendChild(h(taskRow(t,false))));
+  });
+  app.appendChild(frag);
+  bindRows();bindWeekAdd();
+}
+function bindWeekAdd(){
+  const qa=app.querySelector("#qaw");
+  if(!qa)return;
+  const addIt=()=>{if(qa.value.trim()){quickAdd(qa.value.trim(),true);qa.value="";}};
+  app.querySelector("#qawBtn").addEventListener("click",addIt);
+  qa.addEventListener("keydown",e=>{if(e.key==="Enter")addIt();});
+}
+
 /* ---------- leader: my tasks ---------- */
 function renderMine(){
   const ts=myTasks().filter(t=>t.status!=="done");
@@ -432,7 +507,7 @@ function renderMine(){
 function renderBoard(){
   if(isBoss()){
     app.appendChild(h('<div class="quickadd"><input id="qa" placeholder="Add task…  e.g. Fix orderpage @Verdy !aaa 18.07"><button id="qaBtn">+</button></div>'+
-      '<p class="hint">@name = owner · !aaa/!aa/!a/!b = priority · 18.07 or asap = due · #tax #ai #media = section</p>'));
+      '<p class="hint">@name = owner · !aaa/!aa/!a/!b = priority · 18.07 or asap = due · #tax #ai #media = section · tap 🎯 to add to the weekly plan</p>'));
     const qa=app.querySelector("#qa");
     const addIt=()=>{if(qa.value.trim()){quickAdd(qa.value.trim());qa.value="";}};
     app.querySelector("#qaBtn").addEventListener("click",addIt);
@@ -504,8 +579,17 @@ function quickDone(id){
   push();
 }
 
-function quickAdd(text){
+function toggleWeek(id){
+  const t=board.tasks.find(x=>x.id===id);
+  if(!t)return;
+  t.week=!t.week;
+  t.mAt=nowISO();
+  push();
+}
+
+function quickAdd(text,toWeek){
   const t={id:crypto.randomUUID(),title:"",owner:"",prio:"A",due:null,section:"Other",note:"",status:"open",updates:[],created:new Date().toISOString().slice(0,10),mAt:nowISO(),doneAt:null};
+  if(toWeek)t.week=true;
   const secMap={tax:"Tax & Cashflow",cash:"Tax & Cashflow",ai:"AI Launches",media:"Media",phair:"Phair"};
   const rest=[];
   text.split(/\s+/).forEach(w=>{
@@ -531,6 +615,7 @@ function openUpdateSheet(id){
   if(!t)return;
   const boss=isBoss();
   let selSt=t.status==="done"?"done":t.status;
+  let selWeek=!!t.week;
   modal.innerHTML="";
   const secs=[...SECTIONS];if(!secs.includes(t.section))secs.push(t.section);
   const dueVal=t.due&&t.due!=="asap"?t.due:"";
@@ -538,6 +623,7 @@ function openUpdateSheet(id){
     '<div class="overlay" id="ovl"><div class="sheet">'+
     '<h3>'+esc(t.title)+'</h3>'+
     '<p class="sub">'+esc(t.owner||"unassigned")+(t.due?' · due '+esc(fmtDue(t)):"")+'</p>'+
+    '<div class="weektoggle'+(selWeek?" on":"")+'" id="e-week"><span class="box">'+(selWeek?"✓":"")+'</span><span>🎯 In this week\'s plan (high urgency)</span></div>'+
     '<div class="statusbtns">'+
       '<button class="stb" data-st="open">✅ On track</button>'+
       '<button class="stb" data-st="blocked">⛔ Blocked</button>'+
@@ -545,6 +631,7 @@ function openUpdateSheet(id){
     '</div>'+
     '<div class="frow"><label>Update (one line is enough)</label><textarea id="u-text" placeholder="What happened? What\'s next? What do you need?"></textarea></div>'+
     (boss?(
+      '<div class="frow"><label>Task title</label><input id="e-title" value="'+esc(t.title)+'"></div>'+
       '<div class="frow"><div class="row2">'+
         '<div><label>Owner</label><input id="e-owner" list="ownerlist" value="'+esc(t.owner)+'">'+
         '<datalist id="ownerlist">'+Object.keys(board.team).map(o=>'<option value="'+esc(o)+'">').join("")+'</datalist></div>'+
@@ -568,6 +655,8 @@ function openUpdateSheet(id){
   function paint(){modal.querySelectorAll(".stb").forEach(b=>{b.className="stb"+(b.dataset.st===selSt?" sel-"+selSt:"");});}
   paint();
   modal.querySelectorAll(".stb").forEach(b=>b.addEventListener("click",()=>{selSt=b.dataset.st;paint();}));
+  const wkEl=q("#e-week");
+  wkEl.addEventListener("click",()=>{selWeek=!selWeek;wkEl.className="weektoggle"+(selWeek?" on":"");wkEl.querySelector(".box").textContent=selWeek?"✓":"";});
   function close(){modal.innerHTML="";}
   q("#ovl").addEventListener("click",e=>{if(e.target.id==="ovl")close();});
   q("#e-cancel").addEventListener("click",close);
@@ -581,9 +670,11 @@ function openUpdateSheet(id){
       (t.updates=t.updates||[]).push({by:me(),at:nowISO(),text:txt,st:selSt});
     }
     t.status=selSt;
+    t.week=selWeek;
     if(selSt==="done"&&!t.doneAt)t.doneAt=new Date().toISOString().slice(0,10);
     if(selSt!=="done")t.doneAt=null;
     if(isBoss()){
+      const nt=q("#e-title").value.trim();if(nt)t.title=nt;
       t.owner=q("#e-owner").value.trim();
       t.prio=q("#e-prio").value;
       const dv=q("#e-due").value;
